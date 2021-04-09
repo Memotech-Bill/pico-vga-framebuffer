@@ -1,8 +1,11 @@
 /*  main.c - The main program
 
     WJB  8/ 4/21 Experimenting with a 640x480x4-bit (16 colour) framebuffer.
+    WJB  9/ 4/21 Use Pico Interpolater code from @kilograham
 
 */
+
+#define USE_INTERP 1
 
 #include "pico.h"
 #include "pico/stdlib.h"
@@ -10,6 +13,9 @@
 #include "pico/scanvideo/composable_scanline.h"
 #include "pico/multicore.h"
 #include "hardware/clocks.h"
+#if USE_INTERP == 1
+#include "hardware/interp.h"
+#endif
 #include "monprom.h"
 #include <stdio.h>
 #include <string.h>
@@ -42,6 +48,10 @@ uint32_t    dblpal[NCLR * NCLR];
 
 uint8_t     fbuf[WIDTH * HEIGHT / 2];
 
+#if USE_INTERP == 1
+extern void convert_from_pal16(uint32_t *dest, uint8_t *src, uint count);
+#endif
+
 void __time_critical_func(render_loop) (void)
     {
 #ifdef DEBUG
@@ -53,6 +63,11 @@ void __time_critical_func(render_loop) (void)
         int iScan = scanvideo_scanline_number (buffer->scanline_id);
         uint32_t *twoclr = buffer->data;
         uint8_t *twopix = &fbuf[(WIDTH / 2) * iScan];
+#if USE_INTERP == 1
+        ++twoclr;
+        convert_from_pal16 (twoclr, twopix, WIDTH / 2);
+        twoclr += WIDTH / 2;
+#else
         for ( int iCol = 0; iCol < WIDTH / 2; ++iCol )
             {
             ++twoclr;
@@ -60,6 +75,7 @@ void __time_critical_func(render_loop) (void)
             ++twopix;
             }
         ++twoclr;
+#endif
         *twoclr = COMPOSABLE_EOL_ALIGN << 16;
         twoclr = buffer->data;
         twoclr[0] = ( twoclr[1] << 16 ) | COMPOSABLE_RAW_RUN;
@@ -74,6 +90,18 @@ void setup_video (void)
 #ifdef DEBUG
     printf ("System clock speed %d kHz\n", clock_get_hz (clk_sys) / 1000);
     printf ("Starting video\n");
+#endif
+#if USE_INTERP == 1
+    // Configure interpolater lanes
+    interp_config c = interp_default_config();
+    interp_config_set_shift(&c, 22);
+    interp_config_set_mask(&c, 2, 9);
+    interp_set_config(interp0, 0, &c);
+    interp_config_set_shift(&c, 14);
+    interp_config_set_cross_input(&c, true);
+    interp_set_config(interp0, 1, &c);
+    interp_set_base(interp0, 0, (uintptr_t)dblpal);
+    interp_set_base(interp0, 1, (uintptr_t)dblpal);
 #endif
     scanvideo_setup(&vga_mode_640x480_60);
     scanvideo_timing_enable(true);
@@ -159,7 +187,9 @@ void plot_text (const char *ps, int row, int col, int fg, int bg)
 int main (void)
     {
     char text[80];
+#if USE_INTERP != 1
     set_sys_clock_khz (200000, true);
+#endif
     stdio_init_all();
 #ifdef DEBUG
     const uint LED_PIN = PICO_DEFAULT_LED_PIN;

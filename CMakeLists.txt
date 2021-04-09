@@ -10,6 +10,7 @@ pico_sdk_init()
 add_executable(vga_framebuf
   main.c
   monprom.c
+  framebuffer.S
 )
 target_compile_definitions(vga_framebuf PUBLIC -DPICO_SCANVIDEO_MAX_SCANLINE_BUFFER_WORDS=322
   -DPICO_SCANVIDEO_SCANLINE_BUFFER_COUNT=8)
@@ -20,4 +21,5 @@ pico_add_extra_outputs(vga_framebuf)
 target_link_libraries(vga_framebuf PRIVATE
   pico_stdlib
   pico_scanvideo_dpi
-  pico_multicore)
+  pico_multicore
+  hardware_interp)

@@ -20,6 +20,11 @@ This enables each byte in the frame buffer to be rapidly converted into a 32-bit
 the colours of the two pixels, ready to be loaded into the scanline buffer. Even with this trick
 it is necessary to over-clock the Pico.
 
+The code has now been revised to make use of the routine provided by @kilograham to use the Pico
+interpolater to accelerate the palette expansion.
+https://www.raspberrypi.org/forums/viewtopic.php?f=145&t=305712&p=1848868#p1848706
+Using this it is no longer necessary to overclock the Pico.
+
 At present the code just displays the contents of fbuf[], which is filled with some sample text.
 The code is only using one core, so it will be possible to use the second core to generate or
 update the text to be displayed.
