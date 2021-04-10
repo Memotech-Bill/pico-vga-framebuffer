@@ -39,10 +39,11 @@ Build Instructions
 ------------------
 
 You require pico-sdk and pico-extras from Raspberry Pi. Then from the folder containing these:
-
+```
 git clone https://github.com/Memotech-Bill/pico-vga-framebuffer.git
 cd pico-vga-framebuffer
 mkdir build
 cd build
 cmake ..
 make
+```
