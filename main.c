@@ -184,11 +184,42 @@ void plot_text (const char *ps, int row, int col, int fg, int bg)
         }
     }
 
+void core1_entry() {
+    char row[2][WIDTH];
+    int r=0, Y=0, S=0;
+
+    sleep_ms(5000);
+
+    // continuous Sierpinski triangle on "tube" framebuffer
+    // https://en.wikipedia.org/wiki/Sierpinski_triangle
+    memset(row[r], 0, WIDTH);
+    row[r][WIDTH/2]=1;
+
+    for(;;)
+    {
+      memset(fbuf+((Y+10)%HEIGHT)*WIDTH/2, 0, WIDTH/2);
+      for(int x=0; x<WIDTH; ++x)
+        plot_point(x, Y, row[r][x] ? 12 : 8);
+
+      row[1-r][0]       = row[r][1] ^ row[r][WIDTH-1];
+      row[1-r][WIDTH-1] = row[r][WIDTH-2] ^ row[r][0];
+      for(int x=1; x<WIDTH-1; ++x)
+        row[1-r][x] = row[r][x-1] ^ row[r][x+1];
+
+      r=1-r;  
+      Y=(Y+1)%HEIGHT;
+
+      sleep_ms(1);
+    }
+}
+
 int main (void)
     {
     char text[80];
 #if USE_INTERP != 1
     set_sys_clock_khz (200000, true);
+#else
+    set_sys_clock_khz (150000, true);
 #endif
     stdio_init_all();
 #ifdef DEBUG
@@ -214,5 +245,6 @@ int main (void)
         plot_text (text, i, i + 40, i, i + 8);
         }
     setup_video ();
+    multicore_launch_core1(core1_entry);
     render_loop ();
     }
